@@ -1,4 +1,4 @@
-use crate::domain::{Color, Game, Position};
+use crate::domain::{Color, Game, Piece, PieceType, Position};
 use macroquad::prelude::*;
 
 const BOARD_SIZE: f32 = 640.0;
@@ -11,21 +11,24 @@ pub struct ChessUI {
     selected_square: Option<Position>,
     dragging_piece: Option<Position>,
     drag_offset: (f32, f32),
-    font: Font,
+    pieces_texture: Texture2D,
 }
 
 impl ChessUI {
     pub async fn new() -> Self {
-        let _font = load_ttf_font("src/presentation/assests/fonts/0xProtoNerdFontMono-Bold.ttf")
+        let _pieces_texture = load_texture("src/presentation/assests/pieces/chess_pieces_humans_vs_zombies.png")
             .await
             .unwrap();
+
+        // Set texture filtering to Nearest for pixel-perfect scaling
+        _pieces_texture.set_filter(FilterMode::Nearest);
 
         ChessUI {
             game: Game::new(),
             selected_square: None,
             dragging_piece: None,
             drag_offset: (0.0, 0.0),
-            font: _font,
+            pieces_texture: _pieces_texture,
         }
     }
 
@@ -109,9 +112,9 @@ impl ChessUI {
 
                 let is_light_square = (row + col) % 2 == 0;
                 let mut color = if is_light_square {
-                    macroquad::color::Color::from_rgba(240, 217, 181, 255)
+                    macroquad::color::Color::from_rgba(100, 64, 37, 255)
                 } else {
-                    macroquad::color::Color::from_rgba(181, 136, 99, 255)
+                    macroquad::color::Color::from_rgba(76, 57, 59, 255)
                 };
 
                 if let Some(selected) = self.selected_square {
@@ -156,20 +159,48 @@ impl ChessUI {
         }
     }
 
+    fn get_piece_sprite_coords(&self, piece: Piece) -> (f32, f32) {
+        const SPRITE_SIZE: f32 = 16.0;
+        
+        let (row, col) = match (piece.color, piece.piece_type) {
+            // White pieces (top row)
+            (Color::White, PieceType::Pawn) => (0, 0),
+            (Color::White, PieceType::Knight) => (0, 1),
+            (Color::White, PieceType::Bishop) => (0, 2),
+            (Color::White, PieceType::Rook) => (1, 0),
+            (Color::White, PieceType::Queen) => (1, 1),
+            (Color::White, PieceType::King) => (1, 2),
+            
+            // Black pieces (second row)
+            (Color::Black, PieceType::Pawn) => (2, 0),
+            (Color::Black, PieceType::Knight) => (2, 1),
+            (Color::Black, PieceType::Bishop) => (2, 2),
+            (Color::Black, PieceType::Rook) => (3, 0),
+            (Color::Black, PieceType::Queen) => (3, 1),
+            (Color::Black, PieceType::King) => (3, 2),
+        };
+        
+        (col as f32 * SPRITE_SIZE, row as f32 * SPRITE_SIZE)
+    }
+
     fn draw_piece_at(&self, piece: crate::domain::Piece, x: f32, y: f32) {
-        let symbol = piece.unicode_symbol();
-        let font_size = SQUARE_SIZE * 0.8;
-        draw_text_ex(
-            &symbol.to_string(),
-            x + SQUARE_SIZE * 0.1,
-            y + SQUARE_SIZE * 0.8,
-            TextParams {
-                font_size: font_size as u16,
-                font_scale: 1.0,
-                color: BLACK,
-                font: Some(&self.font),
+        let (sprite_x, sprite_y) = self.get_piece_sprite_coords(piece);
+        const SPRITE_SIZE: f32 = 16.0;
+        
+        // Calculate piece size (smaller than square to avoid distortion)
+        let piece_size = SQUARE_SIZE * 0.8;
+        let offset = (SQUARE_SIZE - piece_size) / 2.0;
+
+        draw_texture_ex(
+            &self.pieces_texture,
+            x + offset,
+            y + offset,
+            WHITE,
+            DrawTextureParams {
+                source: Some(Rect::new(sprite_x, sprite_y, SPRITE_SIZE, SPRITE_SIZE)),
+                dest_size: Some(Vec2::new(piece_size, piece_size)),
                 ..Default::default()
-            },
+            }
         );
     }
 

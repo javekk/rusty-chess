@@ -16,7 +16,7 @@ pub struct ChessUI {
 
 impl ChessUI {
     pub async fn new() -> Self {
-        let _pieces_texture = load_texture("src/presentation/assests/pieces/chess_pieces_humans_vs_zombies.png")
+        let _pieces_texture = load_texture("assests/pieces/chess_pieces_humans_vs_zombies.png")
             .await
             .unwrap();
 
